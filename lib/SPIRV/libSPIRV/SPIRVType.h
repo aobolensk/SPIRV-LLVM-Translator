@@ -518,7 +518,6 @@ public:
     return Operands;
   }
 
-protected:
   _SPIRV_DCL_ENCDEC
   void validate() const override;
 
