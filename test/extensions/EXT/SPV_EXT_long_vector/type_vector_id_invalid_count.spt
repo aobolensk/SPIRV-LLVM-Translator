@@ -1,0 +1,33 @@
+; The malformed count must be diagnosed, not crash the translator.
+
+; RUN: not llvm-spirv %s -to-binary -o %t.spv 2>&1 | FileCheck %s
+
+; CHECK: InvalidInstruction
+; CHECK: TypeVectorIdEXT
+; CHECK: Component Count must be an OpConstant with scalar 32-bit integer type
+
+119734787 66304 393230 20 0
+2 Capability Addresses
+2 Capability Kernel
+2 Capability LongVectorEXT
+6 Extension "SPV_EXT_long_vector"
+5 ExtInstImport 1 "OpenCL.std"
+3 MemoryModel 2 2
+4 EntryPoint 6 10 "foo"
+2 TypeVoid 2
+4 TypeInt 3 32 0
+4 Constant 3 4 6
+6 SpecConstantOp 3 14 128 4 4
+4 TypeVectorIdEXT 5 3 14
+4 TypePointer 6 5 5
+4 TypeFunction 7 2 6
+
+5 Function 2 10 0 7
+3 FunctionParameter 6 11
+
+2 Label 12
+4 Load 5 13 11
+3 Store 11 13
+1 Return
+
+1 FunctionEnd

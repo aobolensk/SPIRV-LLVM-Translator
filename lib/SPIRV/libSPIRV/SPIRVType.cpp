@@ -110,6 +110,8 @@ SPIRVWord SPIRVType::getStructMemberCount() const {
 }
 
 SPIRVWord SPIRVType::getVectorComponentCount() const {
+  if (OpCode == OpTypeVectorIdEXT)
+    return static_cast<const SPIRVTypeVectorIdEXT *>(this)->getComponentCount();
   assert(OpCode == OpTypeVector && "Not vector type");
   return static_cast<const SPIRVTypeVector *>(this)->getComponentCount();
 }
@@ -117,6 +119,8 @@ SPIRVWord SPIRVType::getVectorComponentCount() const {
 SPIRVType *SPIRVType::getVectorComponentType() const {
   if (OpCode == OpTypeVector)
     return static_cast<const SPIRVTypeVector *>(this)->getComponentType();
+  if (OpCode == OpTypeVectorIdEXT)
+    return static_cast<const SPIRVTypeVectorIdEXT *>(this)->getComponentType();
   if (OpCode == OpTypeCooperativeMatrixKHR)
     return static_cast<const SPIRVTypeCooperativeMatrixKHR *>(this)
         ->getCompType();
@@ -142,6 +146,7 @@ SPIRVType *SPIRVType::getScalarType() const {
   case OpTypeArray:
     return getArrayElementType();
   case OpTypeVector:
+  case OpTypeVectorIdEXT:
     return getVectorComponentType();
   case OpTypeMatrix:
     return getMatrixColumnType()->getVectorComponentType();
@@ -219,8 +224,9 @@ bool SPIRVType::isTypeSampledImage() const {
 
 bool SPIRVType::isTypeStruct() const { return OpCode == OpTypeStruct; }
 
-bool SPIRVType::isTypeVector() const { return OpCode == OpTypeVector; }
-
+bool SPIRVType::isTypeVector() const {
+  return OpCode == OpTypeVector || OpCode == OpTypeVectorIdEXT;
+}
 
 bool SPIRVType::isTypeCooperativeMatrixKHR() const {
   return OpCode == OpTypeCooperativeMatrixKHR;
@@ -307,6 +313,45 @@ void SPIRVTypeArray::validate() const {
 SPIRVValue *SPIRVTypeArray::getLength() const { return getValue(Length); }
 
 _SPIRV_IMP_ENCDEC3(SPIRVTypeArray, Id, ElemType, Length)
+
+SPIRVTypeVectorIdEXT::SPIRVTypeVectorIdEXT(SPIRVModule *M, SPIRVId TheId,
+                                           SPIRVType *TheCompType,
+                                           SPIRVValue *TheCompCount)
+    : SPIRVType(M, 4, OpTypeVectorIdEXT, TheId), CompType(TheCompType),
+      CompCount(TheCompCount->getId()) {
+  validate();
+}
+
+void SPIRVTypeVectorIdEXT::validate() const {
+  SPIRVEntry::validate();
+  CompType->validate();
+  SPIRVErrorLog &SPVErrLog = getModule()->getErrorLog();
+  auto InstName = OpCodeNameMap::map(OpTypeVectorIdEXT);
+  SPIRVValue *CC = getComponentCountValue();
+  if (!SPVErrLog.checkError(
+          CC && CC->getOpCode() == OpConstant && CC->getType()->isTypeInt(32),
+          SPIRVEC_InvalidInstruction,
+          InstName + "\nComponent Count must be an OpConstant with scalar "
+                     "32-bit integer type\n"))
+    return;
+  SPVErrLog.checkError(getComponentCount() > 0, SPIRVEC_InvalidInstruction,
+                       InstName +
+                           "\nComponent Count must be greater than zero\n");
+}
+
+SPIRVValue *SPIRVTypeVectorIdEXT::getComponentCountValue() const {
+  return getValue(CompCount);
+}
+
+SPIRVWord SPIRVTypeVectorIdEXT::getComponentCount() const {
+  SPIRVValue *CC = getComponentCountValue();
+  // Downcasting a non-OpConstant to SPIRVConstant would be undefined behavior.
+  if (!CC || CC->getOpCode() != OpConstant)
+    return 0;
+  return static_cast<SPIRVConstant *>(CC)->getZExtIntValue();
+}
+
+_SPIRV_IMP_ENCDEC3(SPIRVTypeVectorIdEXT, Id, CompType, CompCount)
 
 void SPIRVTypeForwardPointer::encode(spv_ostream &O) const {
   getEncoder(O) << PointerId << SC;

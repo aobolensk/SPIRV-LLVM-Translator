@@ -253,7 +253,7 @@ inline bool isTypeOpCode(Op OpCode) {
          isVCOpCode(OpCode) || OC == internal::OpTypeTokenINTEL ||
          OC == OpTypeCooperativeMatrixKHR ||
          OC == internal::OpTypeTaskSequenceINTEL ||
-         OC == OpTypeUntypedPointerKHR;
+         OC == OpTypeUntypedPointerKHR || OC == OpTypeVectorIdEXT;
 }
 
 inline bool isFnVarSpecConstINTEL(Op OpCode) {

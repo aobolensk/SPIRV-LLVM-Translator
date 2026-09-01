@@ -483,6 +483,50 @@ private:
   SPIRVWord CompCount; // Component Count
 };
 
+// Like OpTypeVector, but the component count is an <id> of a constant.
+class SPIRVTypeVectorIdEXT : public SPIRVType {
+public:
+  // Complete constructor
+  SPIRVTypeVectorIdEXT(SPIRVModule *M, SPIRVId TheId, SPIRVType *TheCompType,
+                       SPIRVValue *TheCompCount);
+  // Incomplete constructor
+  SPIRVTypeVectorIdEXT()
+      : SPIRVType(OpTypeVectorIdEXT), CompType(nullptr),
+        CompCount(SPIRVID_INVALID) {}
+
+  SPIRVType *getComponentType() const { return CompType; }
+  SPIRVValue *getComponentCountValue() const;
+  SPIRVWord getComponentCount() const;
+  SPIRVCapVec getRequiredCapability() const override {
+    SPIRVCapVec V(getComponentType()->getRequiredCapability());
+    SPIRVWord Count = getComponentCount();
+    if (Count == 8 || Count == 16)
+      V.push_back(CapabilityVector16);
+    V.push_back(CapabilityLongVectorEXT);
+    return V;
+  }
+  std::optional<ExtensionID> getRequiredExtension() const override {
+    return ExtensionID::SPV_EXT_long_vector;
+  }
+  VersionNumber getRequiredSPIRVVersion() const override {
+    return VersionNumber::SPIRV_1_3;
+  }
+  std::vector<SPIRVEntry *> getNonLiteralOperands() const override {
+    // SPIRVValue is incomplete here, so the cast must be C-style.
+    std::vector<SPIRVEntry *> Operands(2, CompType);
+    Operands[1] = (SPIRVEntry *)getComponentCountValue();
+    return Operands;
+  }
+
+protected:
+  _SPIRV_DCL_ENCDEC
+  void validate() const override;
+
+private:
+  SPIRVType *CompType;
+  SPIRVId CompCount;
+};
+
 class SPIRVTypeMatrix : public SPIRVType {
 public:
   // Complete constructor

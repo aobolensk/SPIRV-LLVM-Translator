@@ -2194,9 +2194,21 @@ protected:
     size_t TypeOpCode = this->getType()->getOpCode();
     switch (TypeOpCode) {
     case OpTypeVector:
-      assert(Constituents.size() > 1 &&
-             "There must be at least two Constituent operands in vector");
-      break;
+    case OpTypeVectorIdEXT:
+#ifndef NDEBUG
+    {
+      // SPV_EXT_long_vector permits one-component vectors.
+      SPIRVWord NumComponents = 0;
+      for (SPIRVId I : Constituents) {
+        SPIRVType *CT = getValue(I)->getType();
+        NumComponents += CT->isTypeVector() ? CT->getVectorComponentCount() : 1;
+      }
+      assert(NumComponents == this->getType()->getVectorComponentCount() &&
+             "Constituent operands must supply exactly as many components as "
+             "the result vector type has");
+    }
+#endif // !NDEBUG
+    break;
     case OpTypeArray:
     case OpTypeStruct:
     case OpTypeCooperativeMatrixKHR:

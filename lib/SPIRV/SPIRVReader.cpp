@@ -383,6 +383,7 @@ Type *SPIRVToLLVM::transType(SPIRVType *T, bool UseTPT) {
     return mapType(T, PointerType::get(*Context, MappedAS));
   }
   case OpTypeVector:
+  case OpTypeVectorIdEXT:
     return mapType(T,
                    FixedVectorType::get(transType(T->getVectorComponentType()),
                                         T->getVectorComponentCount()));
@@ -563,6 +564,7 @@ std::string SPIRVToLLVM::transTypeToOCLTypeName(SPIRVType *T, bool IsSigned) {
   case OpTypeUntypedPointerKHR:
     return "int*";
   case OpTypeVector:
+  case OpTypeVectorIdEXT:
     return transTypeToOCLTypeName(T->getVectorComponentType()) +
            T->getVectorComponentCount();
   case OpTypeMatrix:
@@ -1672,6 +1674,7 @@ Value *SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
     }
     switch (BV->getType()->getOpCode()) {
     case OpTypeVector:
+    case OpTypeVectorIdEXT:
       return mapValue(BV, ConstantVector::get(CV));
     case OpTypeMatrix:
     case OpTypeArray: {
@@ -2578,7 +2581,8 @@ Value *SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
     }
 
     switch (static_cast<size_t>(BV->getType()->getOpCode())) {
-    case OpTypeVector: {
+    case OpTypeVector:
+    case OpTypeVectorIdEXT: {
       if (!HasRtValues)
         return mapValue(BV, ConstantVector::get(CV));
 
