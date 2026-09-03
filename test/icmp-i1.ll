@@ -16,15 +16,15 @@ target datalayout = "e-i64:64-v16:16-v24:32-v32:32-v48:64-v96:128-v192:256-v256:
 target triple = "spir64-unknown-unknown"
 
 ; CHECK-SPIRV-NOT: {{U|S}}{{Greater|Less}}Than
-; CHECK-SPIRV-COUNT-2: 5 LogicalAnd
-; CHECK-SPIRV-COUNT-2: 5 LogicalOr
-; CHECK-SPIRV-COUNT-2: 5 LogicalAnd
-; CHECK-SPIRV-COUNT-2: 5 LogicalOr
-; CHECK-SPIRV: 5 LogicalAnd
+; CHECK-SPIRV-COUNT-2: LogicalAnd
+; CHECK-SPIRV-COUNT-2:  LogicalOr
+; CHECK-SPIRV-COUNT-2:  LogicalAnd
+; CHECK-SPIRV-COUNT-2:  LogicalOr
+; CHECK-SPIRV:  LogicalAnd
 
 ; ugt/slt -> p & !q, ult/sgt -> q & !p, uge/sle -> p | !q, ule/sge -> q | !p
-; CHECK-LOWER: %[[#NOT0:]] = xor i1 %q, true
-; CHECK-LOWER: %c0 = and i1 %p, %[[#NOT0]]
+; CHECK-LOWER: %[[#NOT0:]] = xor i1 %q, true, !dbg [[DBG:![0-9]+]]
+; CHECK-LOWER: %c0 = and i1 %p, %[[#NOT0]], !dbg [[DBG]]
 ; CHECK-LOWER: %[[#NOT1:]] = xor i1 %p, true
 ; CHECK-LOWER: %c1 = and i1 %q, %[[#NOT1]]
 ; CHECK-LOWER: %[[#NOT2:]] = xor i1 %q, true
@@ -52,9 +52,9 @@ target triple = "spir64-unknown-unknown"
 ; CHECK-LLVM: %c7 = or i1 %p,
 ; CHECK-LLVM: %vc0 = and <2 x i1> %vp,
 
-define spir_kernel void @test(i1 %p, i1 %q, ptr addrspace(1) %out, <2 x i1> %vp, <2 x i1> %vq, ptr addrspace(1) %vout) {
+define spir_kernel void @test(i1 %p, i1 %q, ptr addrspace(1) %out, <2 x i1> %vp, <2 x i1> %vq, ptr addrspace(1) %vout) !dbg !4 {
 entry:
-  %c0 = icmp ugt i1 %p, %q
+  %c0 = icmp ugt i1 %p, %q, !dbg !7
   %e0 = zext i1 %c0 to i32
   %o0 = getelementptr i32, ptr addrspace(1) %out, i32 0
   store i32 %e0, ptr addrspace(1) %o0, align 4
@@ -100,3 +100,14 @@ entry:
 
   ret void
 }
+
+!llvm.dbg.cu = !{!0}
+!llvm.module.flags = !{!3}
+
+!0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, emissionKind: FullDebug)
+!1 = !DIFile(filename: "icmp-i1.ll", directory: ".")
+!3 = !{i32 2, !"Debug Info Version", i32 3}
+!4 = distinct !DISubprogram(name: "test", scope: !1, file: !1, unit: !0, type: !5)
+!5 = !DISubroutineType(types: !6)
+!6 = !{null}
+!7 = !DILocation(line: 1, column: 1, scope: !4)

@@ -111,6 +111,7 @@ void SPIRVLowerBoolBase::visitICmpInst(ICmpInst &I) {
     return;
   }
   auto *NotB = BinaryOperator::CreateNot(B, "", I.getIterator());
+  NotB->setDebugLoc(I.getDebugLoc());
   auto *NewI = BinaryOperator::Create(Opc, A, NotB, "", I.getIterator());
   replace(&I, NewI);
 }
